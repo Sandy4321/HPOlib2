@@ -25,6 +25,7 @@ class AutoSklearnBenchmark(AbstractBenchmark):
 
     def __init__(self, task_id):
         super().__init__()
+        self._check_dependencies()
         self.data_manager = self._get_data_manager(task_id)
         self._setup_evaluators(self.data_manager)
 
@@ -110,7 +111,8 @@ class AutoSklearnBenchmark(AbstractBenchmark):
                         'scipy>=0.14.1',
                         'scikit-learn==0.17.1',
                         'xgboost==0.4a30',
-                        'pynisher==0.4.1']
+                        'pynisher==0.4.2',
+                        'auto-sklearn==0.1.1']
         dependencies = '\n'.join(dependencies)
         verify_packages(dependencies)
 
@@ -151,7 +153,7 @@ url = {http://papers.nips.cc/paper/5872-efficient-and-robust-automated-machine-l
         cutoff = kwargs.get('cutoff', 3600)
         memory_limit = kwargs.get('memory_limit', 6144)
 
-        status, cost, runtime, additional_run_info = self.evaluator.run(
+        status, cost, runtime, additional_run_info = self.test_evaluator.run(
             config=configuration, cutoff=cutoff, memory_limit=memory_limit)
 
         end_time = time.time()

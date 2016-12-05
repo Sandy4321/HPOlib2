@@ -3,7 +3,7 @@ import re
 from distutils.version import LooseVersion
 
 RE_PATTERN = re.compile(
-    '^(?P<name>[\w\-]+)((?P<operation>==|>=|>)(?P<version>(\d+\.)?(\d+\.)?(\d+)))?$')
+    r'^(?P<name>[\w\-]+)((?P<operation>==|>=|>)(?P<version>(\d+)?(\.[a-zA-Z0-9]+)?(\.\d+)?))?$')
 
 """Generic code to verify package versions (a.k.a. dependencies).
 
