@@ -39,17 +39,6 @@ class AutoSklearnBenchmark(AbstractBenchmark):
             delete_output_folder_after_terminate=True)
         self.backend.save_datamanager(data_manager)
         self.logger = logging.getLogger(self.__class__.__name__)
-        self.evaluator = autosklearn.evaluation.ExecuteTaFuncWithQueue(
-            backend=self.backend,
-            autosklearn_seed=1,
-            resampling_strategy='partial-cv',
-            folds=10,
-            logger=self.logger)
-        self.test_evaluator = autosklearn.evaluation.ExecuteTaFuncWithQueue(
-            backend=self.backend,
-            autosklearn_seed=1,
-            resampling_strategy='test',
-            logger=self.logger)
 
     @staticmethod
     def _get_data_manager(task_id):
@@ -102,7 +91,7 @@ class AutoSklearnBenchmark(AbstractBenchmark):
             X_train, y_train, task_type, autosklearn.constants.BAC_METRIC,
             variable_types, dataset.name, False)
         data_manager._data['X_test'] = X_test
-        data_manager._data['y_test'] = y_test
+        data_manager._data['Y_test'] = y_test
 
         return data_manager
 
@@ -131,34 +120,50 @@ url = {http://papers.nips.cc/paper/5872-efficient-and-robust-automated-machine-l
 
     @AbstractBenchmark._check_configuration
     def objective_function(self, configuration, **kwargs):
+        fold = kwargs['fold']
+
+        evaluator = autosklearn.evaluation.ExecuteTaFuncWithQueue(
+            backend=self.backend,
+            autosklearn_seed=1,
+            resampling_strategy='partial-cv',
+            folds=10,
+            logger=self.logger,
+            fold=fold)
 
         start_time = time.time()
 
-        fold = kwargs['fold']
         cutoff = kwargs.get('cutoff', 1800)
         memory_limit = kwargs.get('memory_limit', 3072)
 
-        status, cost, runtime, additional_run_info = self.evaluator.run(
+        status, cost, runtime, additional_run_info = evaluator.run(
             config=configuration, cutoff=cutoff, memory_limit=memory_limit,
             instance=fold)
 
         end_time = time.time()
 
-        return {'function_value': cost, 'cost': end_time - start_time}
+        return {'function_value': cost, 'cost': end_time - start_time,
+                'status': status}
 
     @AbstractBenchmark._check_configuration
     def objective_function_test(self, configuration, **kwargs):
+        test_evaluator = autosklearn.evaluation.ExecuteTaFuncWithQueue(
+            backend=self.backend,
+            autosklearn_seed=1,
+            resampling_strategy='test',
+            logger=self.logger)
+
         start_time = time.time()
 
         cutoff = kwargs.get('cutoff', 3600)
         memory_limit = kwargs.get('memory_limit', 6144)
 
-        status, cost, runtime, additional_run_info = self.test_evaluator.run(
+        status, cost, runtime, additional_run_info = test_evaluator.run(
             config=configuration, cutoff=cutoff, memory_limit=memory_limit)
 
         end_time = time.time()
 
-        return {'function_value': cost, 'cost': end_time - start_time}
+        return {'function_value': cost, 'cost': end_time - start_time,
+                'status': status}
 
 
 class MulticlassClassificationBenchmark(AutoSklearnBenchmark):
@@ -167,7 +172,13 @@ class MulticlassClassificationBenchmark(AutoSklearnBenchmark):
         task = autosklearn.constants.MULTICLASS_CLASSIFICATION
         metric = autosklearn.constants.BAC_METRIC
         cs = autosklearn.util.pipeline.get_configuration_space(
-            info={'task': task, 'metric': metric, 'is_sparse': 0})
+            info={'task': task, 'metric': metric, 'is_sparse': 0},
+            include_estimators=['adaboost', 'bernoulli_nb', 'decision_tree',
+                                'extra_trees', 'gaussian_nb',
+                                'gradient_boosting', 'k_nearest_neighbors',
+                                'lda', 'liblinear_svc', 'libsvm_svc',
+                                'multinomial_nb', 'passive_aggressive', 'qda',
+                                'random_forest', 'sgd'])
         return cs
 
 
@@ -178,4 +189,17 @@ class AutoSklearnBenchmarkAdultBAC(MulticlassClassificationBenchmark):
 
 if __name__ == '__main__':
     benchmark = AutoSklearnBenchmarkAdultBAC()
-    benchmark.test(5)
+    all_rvals = []
+    for i in range(10):
+        print(i)
+        train_rval, test_rval = benchmark.test(2, fold=i)
+        for r in train_rval:
+            print(r)
+            all_rvals.append(r['function_value'])
+        for r in test_rval:
+            all_rvals.append(r['function_value'])
+
+    assert 1.0 > np.mean(all_rvals) > 0.0
+    assert 2.0 >= np.max(all_rvals)
+    assert np.min(all_rvals) >= 0.0
+    print(all_rvals)
