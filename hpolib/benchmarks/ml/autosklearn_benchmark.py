@@ -27,9 +27,9 @@ class AutoSklearnBenchmark(AbstractBenchmark):
         super().__init__()
         self._check_dependencies()
         self.data_manager = self._get_data_manager(task_id)
-        self._setup_evaluators(self.data_manager)
+        self._setup_backend()
 
-    def _setup_evaluators(self, data_manager):
+    def _setup_backend(self):
         tmp_folder = tempfile.mkdtemp()
         output_folder = tempfile.mkdtemp()
         self.backend = autosklearn.util.backend.create(
@@ -37,7 +37,7 @@ class AutoSklearnBenchmark(AbstractBenchmark):
             output_directory=output_folder,
             delete_tmp_folder_after_terminate=True,
             delete_output_folder_after_terminate=True)
-        self.backend.save_datamanager(data_manager)
+        self.backend.save_datamanager(self.data_manager)
         self.logger = logging.getLogger(self.__class__.__name__)
 
     @staticmethod
@@ -185,21 +185,3 @@ class MulticlassClassificationBenchmark(AutoSklearnBenchmark):
 class AutoSklearnBenchmarkAdultBAC(MulticlassClassificationBenchmark):
     def __init__(self):
         super().__init__(2117)
-
-
-if __name__ == '__main__':
-    benchmark = AutoSklearnBenchmarkAdultBAC()
-    all_rvals = []
-    for i in range(10):
-        print(i)
-        train_rval, test_rval = benchmark.test(2, fold=i)
-        for r in train_rval:
-            print(r)
-            all_rvals.append(r['function_value'])
-        for r in test_rval:
-            all_rvals.append(r['function_value'])
-
-    assert 1.0 > np.mean(all_rvals) > 0.0
-    assert 2.0 >= np.max(all_rvals)
-    assert np.min(all_rvals) >= 0.0
-    print(all_rvals)
