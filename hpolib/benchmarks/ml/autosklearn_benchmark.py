@@ -26,7 +26,7 @@ class AutoSklearnBenchmark(AbstractBenchmark):
     def __init__(self, task_id):
         super().__init__()
         self._check_dependencies()
-        self.data_manager = self._get_data_manager(task_id)
+        self._get_data_manager(task_id)
         self._setup_backend()
 
     def _setup_backend(self):
@@ -40,19 +40,10 @@ class AutoSklearnBenchmark(AbstractBenchmark):
         self.backend.save_datamanager(self.data_manager)
         self.logger = logging.getLogger(self.__class__.__name__)
 
-    @staticmethod
-    def _get_data_manager(task_id):
+    def _get_data_manager(self, task_id):
 
         task = openml.tasks.get_task(task_id)
 
-        try:
-            task.get_train_test_split_indices(fold=1, repeat=0)
-            raise_exception = True
-        except:
-            raise_exception = False
-        if raise_exception:
-            raise ValueError('Task %d has more than one fold. This benchmark '
-                             'can only work with a single fold.' % task_id)
         try:
             task.get_train_test_split_indices(fold=0, repeat=1)
             raise_exception = True
@@ -61,6 +52,14 @@ class AutoSklearnBenchmark(AbstractBenchmark):
         if raise_exception:
             raise ValueError('Task %d has more than one repeat. This benchmark '
                              'can only work with a single repeat.' % task_id)
+        try:
+            task.get_train_test_split_indices(fold=1, repeat=0)
+            raise_exception = True
+        except:
+            raise_exception = False
+        if raise_exception:
+            raise ValueError('Task %d has more than one fold. This benchmark '
+                             'can only work with a single fold.' % task_id)
 
         train_indices, test_indices = task.get_train_test_split_indices()
 
@@ -93,7 +92,7 @@ class AutoSklearnBenchmark(AbstractBenchmark):
         data_manager._data['X_test'] = X_test
         data_manager._data['Y_test'] = y_test
 
-        return data_manager
+        self.data_manager = data_manager
 
     def _check_dependencies(self):
         dependencies = ['numpy>=1.9.0',
