@@ -2,6 +2,7 @@ import unittest
 import unittest.mock
 
 import numpy as np
+import openml
 
 from autosklearn.data.xy_data_manager import XYDataManager
 from autosklearn.constants import *
@@ -9,6 +10,10 @@ import hpolib.benchmarks.ml.autosklearn_benchmark
 
 
 class TestAutoSklearnBenchmark(unittest.TestCase):
+
+    def setUp(self):
+        # Readonly API key for unit tests from Matthias Feurer
+        openml.config.apikey = '953f6621518c13791dbbfc6d3698f5ad'
 
     @unittest.mock.patch.multiple(hpolib.benchmarks.ml.autosklearn_benchmark.AutoSklearnBenchmark, __abstractmethods__=set())
     @unittest.mock.patch('hpolib.benchmarks.ml.autosklearn_benchmark.AutoSklearnBenchmark._check_dependencies')
