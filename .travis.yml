@@ -33,7 +33,7 @@ install:
   - cat optional-requirements.txt | grep -v '#' | xargs -n 1 -L 1 pip install
   # Install auto-sklearn
   - curl https://raw.githubusercontent.com/automl/auto-sklearn/master/requirements.txt | xargs -n 1 -L 1 pip install
-  - pip install auto-sklearn
+  - pip install auto-sklearn==0.1.2
   - python setup.py install
 
 # command to run tests, e.g. python setup.py test

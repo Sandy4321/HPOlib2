@@ -100,7 +100,7 @@ class AutoSklearnBenchmark(AbstractBenchmark):
                         'scikit-learn==0.17.1',
                         'xgboost==0.4a30',
                         'pynisher==0.4.2',
-                        'auto-sklearn==0.1.1']
+                        'auto-sklearn==0.1.2']
         dependencies = '\n'.join(dependencies)
         verify_packages(dependencies)
 
