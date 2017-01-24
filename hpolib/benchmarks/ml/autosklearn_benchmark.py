@@ -8,9 +8,9 @@ import autosklearn.util.backend
 import autosklearn.constants
 import autosklearn.util.pipeline
 import numpy as np
-import openml.tasks
 from hpolib.abstract_benchmark import AbstractBenchmark
 from hpolib.util.dependencies import verify_packages
+from hpolib.util.openml_data_manager import OpenMLCrossvalidationDataManager
 
 __version__ = 0.1
 
@@ -42,32 +42,8 @@ class AutoSklearnBenchmark(AbstractBenchmark):
 
     def _get_data_manager(self, task_id):
 
-        task = openml.tasks.get_task(task_id)
-
-        try:
-            task.get_train_test_split_indices(fold=0, repeat=1)
-            raise_exception = True
-        except:
-            raise_exception = False
-        if raise_exception:
-            raise ValueError('Task %d has more than one repeat. This benchmark '
-                             'can only work with a single repeat.' % task_id)
-        try:
-            task.get_train_test_split_indices(fold=1, repeat=0)
-            raise_exception = True
-        except:
-            raise_exception = False
-        if raise_exception:
-            raise ValueError('Task %d has more than one fold. This benchmark '
-                             'can only work with a single fold.' % task_id)
-
-        train_indices, test_indices = task.get_train_test_split_indices()
-
-        X, y = task.get_X_and_y()
-        X_train = X[train_indices]
-        y_train = y[train_indices]
-        X_test = X[test_indices]
-        y_test = y[test_indices]
+        dm = OpenMLCrossvalidationDataManager(task_id)
+        X_train, y_train, X_test, y_test = dm.load()
 
         num_classes = len(np.unique(y_train))
         if num_classes == 2:
@@ -77,18 +53,14 @@ class AutoSklearnBenchmark(AbstractBenchmark):
         else:
             raise ValueError('This benchmark needs at least two classes.')
 
-        dataset = task.get_dataset()
-        _, _, categorical_indicator = dataset.get_data(
-            target=task.target_name,
-            return_categorical_indicator=True)
-        variable_types = ['categorical' if ci else 'numerical'
-                          for ci in categorical_indicator]
+        variable_types = dm.variable_types
+        name = dm.name
 
         # TODO in the future, the XYDataManager should have this as it's own
         # attribute
         data_manager = autosklearn.data.xy_data_manager.XYDataManager(
             X_train, y_train, task_type, autosklearn.constants.BAC_METRIC,
-            variable_types, dataset.name, False)
+            variable_types, name, False)
         data_manager._data['X_test'] = X_test
         data_manager._data['Y_test'] = y_test
 
